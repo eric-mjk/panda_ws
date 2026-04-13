@@ -1,0 +1,6 @@
+[submodule "ros2_ws/src/panda_ros2"]
+	path = ros2_ws/src/panda_ros2
+	url = https://github.com/tenfoldpaper/panda_ros2.git
+[submodule "thinkgrasp/ThinkGrasp"]
+	path = thinkgrasp/ThinkGrasp
+	url = https://github.com/H-Freax/ThinkGrasp.git
