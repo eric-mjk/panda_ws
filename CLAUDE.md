@@ -2,9 +2,22 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Workspace Layout
+
+```
+/workspace/
+  ros2_ws/          ← ROS 2 colcon workspace
+    src/
+      panda_ros2/   ← Franka hardware driver packages
+      pymoveit2/    ← Python MoveIt 2 client library
+  thinkgrasp/
+    ThinkGrasp/     ← Vision-language grasp detection system
+    run.sh          ← CUDA env vars needed before running ThinkGrasp
+```
+
 ## Build & Test Commands
 
-This is a ROS 2 (Humble) workspace using `colcon` and `ament_cmake`. Run from `/workspace`:
+Run from `/workspace/ros2_ws`:
 
 ```bash
 # Build
@@ -21,7 +34,7 @@ colcon test-result
 colcon test --packages-select <package_name>
 ```
 
-Before running anything, source the workspace: `source install/setup.bash`
+Before running anything, source the workspace: `source /workspace/ros2_ws/install/setup.bash`
 
 ## Linting & Formatting
 
@@ -31,10 +44,11 @@ Before running anything, source the workspace: `source install/setup.bash`
 
 ## Architecture Overview
 
+### ROS 2 Control Stack (panda_ros2)
+
 This is a **ROS 2 Humble hardware driver and control framework** for Franka Emika Panda robot arms. It bridges `libfranka` (Franka's C++ SDK) with the `ros2_control` ecosystem.
 
-### Control Flow
-
+**Control flow:**
 ```
 libfranka (robot hardware)
     ↓
@@ -49,9 +63,7 @@ FrankaHardwareInterface → libfranka → robot
 
 The main control node (`franka_control2`) creates a multi-threaded executor with `SCHED_FIFO` real-time scheduling (priority 50). The hardware interface is loaded as a `pluginlib` plugin.
 
-### Package Responsibilities
-
-All packages live under `src/panda_ros2/`.
+**Package responsibilities** (all under `ros2_ws/src/panda_ros2/`):
 
 | Package | Role |
 |---|---|
@@ -66,12 +78,22 @@ All packages live under `src/panda_ros2/`.
 | `franka_bringup` | Launch files and controller YAML configs for single/dual-arm bringup; MoveIt2 integration |
 | `franka_moveit_config` | MoveIt 2 motion planning configuration |
 
-### Key Design Patterns
-
+**Key design patterns:**
 - **Hardware parameters at runtime**: `franka_hardware` hosts ROS 2 parameter services so controllers and users can change robot behavior (stiffness, collision thresholds, TCP frame) without restart.
 - **Error recovery**: Service servers in `franka_hardware` expose error recovery without restarting the control node.
 - **Dual-arm support**: `FrankaMultiHardwareInterface` and dual-arm example controllers handle synchronized multi-robot configurations.
 - **Real-time constraints**: The control loop uses `SCHED_FIFO` scheduling. Avoid allocations or blocking calls in controller `update()` methods.
+
+### pymoveit2
+
+Python client library (`ros2_ws/src/pymoveit2/`) providing async MoveIt 2 interfaces. Key classes: `MoveIt2` (arm planning/execution), `MoveIt2Gripper`, `MoveIt2Servo`. Used to drive the Panda from Python nodes without writing C++ controllers.
+
+### ThinkGrasp
+
+Vision-language grasp detection system (`thinkgrasp/ThinkGrasp/`) — CoRL 2024. Uses LangSAM for segmentation and FGC-GraspNet for 6-DOF grasp pose estimation. Runs in PyBullet simulation or real-world via Flask API.
+
+- **CUDA environment** required before running — source `thinkgrasp/run.sh` (sets `CUDA_HOME=/usr/local/cuda-11.8`)
+- **Asset issue**: Many `unseen_objects_40` URDFs were patched to replace missing `textured.obj` with available collision meshes. See `thinkgrasp_edits.txt` for the full patch log. To properly fix, re-download assets from the ThinkGrasp HuggingFace dataset.
 
 ## Critical Dependencies — Do Not Corrupt
 
@@ -94,6 +116,17 @@ ldconfig -p | grep franka          # should show /usr/local/lib/libfranka.so.0.8
 find /usr/local -name "FrankaConfig.cmake"
 ```
 
+### librealsense 2.53.1 (source build)
+
+- **Installed to**: `/usr/local/lib`, headers at `/usr/local/include/librealsense2`, cmake at `/usr/local/lib/cmake/realsense2`
+
+**Verify**:
+```bash
+ldconfig -p | grep realsense
+find /usr/local -name "*realsense*Config.cmake"
+python3 -c "import pyrealsense2 as rs; print('OK')"
+```
+
 ### MoveIt 2.5.9 (apt)
 
 - **Install method**: `apt` — `ros-humble-moveit 2.5.9` at `/opt/ros/humble/`
@@ -110,6 +143,13 @@ Must be set before building or running (check `~/.bashrc`):
 ```bash
 export CMAKE_PREFIX_PATH=/usr/local:/opt/openrobots/lib/cmake:$CMAKE_PREFIX_PATH
 export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+```
+
+For ThinkGrasp (source `thinkgrasp/run.sh`):
+```bash
+export CUDA_HOME=/usr/local/cuda-11.8
+export PATH=$CUDA_HOME/bin:$PATH
+export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
 ```
 
 ### Pinocchio (robotpkg)
