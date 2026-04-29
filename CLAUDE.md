@@ -9,11 +9,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   ros2_ws/          ← ROS 2 colcon workspace
     src/
       panda_ros2/   ← Franka hardware driver packages
-      pymoveit2/    ← Python MoveIt 2 client library
+      pymoveit2/    ← Python MoveIt 2 client library (repo not yet cloned — directory is empty)
+      topic_based_ros2_control/  ← Isaac Sim ↔ ros2_control bridge via topics
   thinkgrasp/
-    ThinkGrasp/     ← Vision-language grasp detection system
-    run.sh          ← CUDA env vars needed before running ThinkGrasp
+    ThinkGrasp/     ← Vision-language grasp detection system (repo not yet cloned — directory is empty)
 ```
+
+> **Note**: `pymoveit2` and `ThinkGrasp` are empty placeholder directories. Clone them before use:
+> - `https://github.com/AndrejOrsula/pymoveit2.git`
+> - ThinkGrasp from its CoRL 2024 repository; CUDA env vars required (`CUDA_HOME=/usr/local/cuda-11.8`)
 
 ## Build & Test Commands
 
@@ -35,6 +39,35 @@ colcon test --packages-select <package_name>
 ```
 
 Before running anything, source the workspace: `source /workspace/ros2_ws/install/setup.bash`
+
+## Launch Commands
+
+```bash
+# Fake hardware (no robot needed — for development/simulation)
+ros2 launch franka_moveit_config moveit.launch.py use_fake_hardware:=true load_gripper:=true
+
+# Isaac Sim (start Isaac Sim first and press Play, then run this)
+ros2 launch franka_moveit_config moveit.launch.py use_isaac_sim:=true load_gripper:=false
+
+# Real robot
+ros2 launch franka_moveit_config moveit.launch.py robot_ip:=<ROBOT_IP> load_gripper:=true
+
+# Hardware-only bringup (without MoveIt)
+ros2 launch franka_bringup franka.launch.py robot_ip:=<ROBOT_IP> use_fake_hardware:=false
+```
+
+Controller management (after bringup):
+```bash
+# List available/active controllers
+ros2 control list_controllers
+
+# Spawn and activate a controller
+ros2 control load_controller --set-state active joint_velocity_example_controller
+
+# Switch active controller
+ros2 control switch_controllers --activate joint_impedance_example_controller \
+  --deactivate joint_velocity_example_controller
+```
 
 ## Linting & Formatting
 
@@ -76,7 +109,13 @@ The main control node (`franka_control2`) creates a multi-threaded executor with
 | `franka_gripper` | Action server for Franka Hand gripper (Grasp, Move, Homing actions) |
 | `franka_description` | URDF/Xacro robot descriptions; single-arm (`panda_arm.urdf.xacro`) and dual-arm (`dual_panda_arm.urdf.xacro`); `ros2_control` xacro configs |
 | `franka_bringup` | Launch files and controller YAML configs for single/dual-arm bringup; MoveIt2 integration |
-| `franka_moveit_config` | MoveIt 2 motion planning configuration |
+| `franka_moveit_config` | MoveIt 2 motion planning configuration; supports `use_fake_hardware`, `use_isaac_sim`, and real-robot modes |
+
+**Additional workspace packages** (under `ros2_ws/src/`):
+
+| Package | Role |
+|---|---|
+| `topic_based_ros2_control` | `ros2_control` hardware interface that bridges to/from ROS topics; used with Isaac Sim (`use_isaac_sim:=true`) so MoveIt communicates with the simulator over joint state/command topics |
 
 **Key design patterns:**
 - **Hardware parameters at runtime**: `franka_hardware` hosts ROS 2 parameter services so controllers and users can change robot behavior (stiffness, collision thresholds, TCP frame) without restart.
@@ -86,13 +125,14 @@ The main control node (`franka_control2`) creates a multi-threaded executor with
 
 ### pymoveit2
 
-Python client library (`ros2_ws/src/pymoveit2/`) providing async MoveIt 2 interfaces. Key classes: `MoveIt2` (arm planning/execution), `MoveIt2Gripper`, `MoveIt2Servo`. Used to drive the Panda from Python nodes without writing C++ controllers.
+Python client library (`ros2_ws/src/pymoveit2/`) providing async MoveIt 2 interfaces. Key classes: `MoveIt2` (arm planning/execution), `MoveIt2Gripper`, `MoveIt2Servo`. Used to drive the Panda from Python nodes without writing C++ controllers. **Repository not yet cloned** — directory is empty.
 
 ### ThinkGrasp
 
-Vision-language grasp detection system (`thinkgrasp/ThinkGrasp/`) — CoRL 2024. Uses LangSAM for segmentation and FGC-GraspNet for 6-DOF grasp pose estimation. Runs in PyBullet simulation or real-world via Flask API.
+Vision-language grasp detection system (`thinkgrasp/ThinkGrasp/`) — CoRL 2024. Uses LangSAM for segmentation and FGC-GraspNet for 6-DOF grasp pose estimation. Runs in PyBullet simulation or real-world via Flask API. **Repository not yet cloned** — directory is empty.
 
-- **CUDA environment** required before running — source `thinkgrasp/run.sh` (sets `CUDA_HOME=/usr/local/cuda-11.8`)
+When populated:
+- **CUDA environment** required — set `CUDA_HOME=/usr/local/cuda-11.8`, add `$CUDA_HOME/bin` to `PATH` and `$CUDA_HOME/lib64` to `LD_LIBRARY_PATH` before running.
 - **Asset issue**: Many `unseen_objects_40` URDFs were patched to replace missing `textured.obj` with available collision meshes. See `thinkgrasp_edits.txt` for the full patch log. To properly fix, re-download assets from the ThinkGrasp HuggingFace dataset.
 
 ## Critical Dependencies — Do Not Corrupt
@@ -145,7 +185,7 @@ export CMAKE_PREFIX_PATH=/usr/local:/opt/openrobots/lib/cmake:$CMAKE_PREFIX_PATH
 export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 ```
 
-For ThinkGrasp (source `thinkgrasp/run.sh`):
+For ThinkGrasp:
 ```bash
 export CUDA_HOME=/usr/local/cuda-11.8
 export PATH=$CUDA_HOME/bin:$PATH
