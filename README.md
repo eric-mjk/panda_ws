@@ -21,6 +21,8 @@ git clone
 
 `https://github.com/tenfoldpaper/panda_ros2.git`
 
+`https://github.com/AndrejOrsula/pymoveit2.git`
+
 docker images
 
 `https://hub.docker.com/repository/docker/ericmjk/panda_ws/general`
