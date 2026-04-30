@@ -1,6 +1,9 @@
 # Panda_ws
 
-running the container
+1. Clone this repo
+ex) to Eric/panda_ws
+
+2. running the container
 ```
 docker run -it -d --net=host --ipc=host \
   -e ROS_DOMAIN_ID=0 \
@@ -16,15 +19,37 @@ docker run -it -d --net=host --ipc=host \
   ericmjk/panda_thinkgrasp:sim
 ```
 
-git clone 
+3. After cloning panda_ws (inside container)
+```
+git submodule update --init --recursive
 
-- ros2_ws/src/panda_ros2 : (forked) `https://github.com/eric-mjk/_forked_panda_ros2.git`
+sudo apt update
+sudo apt install ros-humble-ros-testing
+```
 
-- thinkgrasp/Thinkgrasp : (forked) `https://github.com/eric-mjk/_forked_ThinkGrasp.git`
+4. Colcon build inside ros2_ws
 
-- ros2_ws/src/pymoveit2 : `https://github.com/AndrejOrsula/pymoveit2.git`
+5. Run
+
+- fake hardware
+```
+ros2 launch franka_moveit_config moveit.launch.py use_fake_hardware:=true load_gripper:=true
+```
+
+- isaac sim
+```
+ros2 launch franka_moveit_config moveit.launch.py use_isaac_sim:=true load_gripper:=false
+```
+
+```
+ros2 launch franka_moveit_config moveit.launch.py use_isaac_sim:=true load_gripper:=true
+```
+
+<- for isaac sim run the sim.usda file first (this file is not on github)
 
 
+
+(for reference)
 docker images
 
 `https://hub.docker.com/repository/docker/ericmjk/panda_ws/general`
