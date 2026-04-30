@@ -19,9 +19,12 @@ docker run -it\
 
 git clone 
 
-`https://github.com/tenfoldpaper/panda_ros2.git`
+- ros2_ws/src/panda_ros2 : (forked) `https://github.com/eric-mjk/_forked_panda_ros2.git`
 
-`https://github.com/AndrejOrsula/pymoveit2.git`
+- thinkgrasp/Thinkgrasp : (forked) `https://github.com/eric-mjk/_forked_ThinkGrasp.git`
+
+- ros2_ws/src/pymoveit2 : `https://github.com/AndrejOrsula/pymoveit2.git`
+
 
 docker images
 
