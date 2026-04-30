@@ -2,19 +2,18 @@
 
 running the container
 ```
-docker run -it\
-  -d \
-  --gpus all \
-  --ipc host \
-  --net host \
-  --privileged \
-  -v /dev:/dev \
-  -v /dev/bus/usb:/dev/bus/usb \
-  --name panda \
+docker run -it -d --net=host --ipc=host \
+  -e ROS_DOMAIN_ID=0 \
+  -e RMW_IMPLEMENTATION=rmw_fastrtps_cpp \
+  -e FASTDDS_BUILTIN_TRANSPORTS=UDPv4 \
   -e DISPLAY=$DISPLAY \
+  -e QT_X11_NO_MITSHM=1 \
   -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
+  --gpus all\
+  --privileged\
+  --name eric_panda\
   -v ~/Eric/panda_ws:/workspace \
-  ericmjk/panda_ws:vanilla
+  ericmjk/panda_thinkgrasp:sim
 ```
 
 git clone 
