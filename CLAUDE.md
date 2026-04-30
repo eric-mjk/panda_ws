@@ -2,26 +2,55 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Docker Environment
+
+This workspace is designed to run inside a Docker container. The host directory `~/Eric/panda_ws` is mounted as `/workspace` inside the container.
+
+**Start the container:**
+```bash
+docker run -it -d \
+  --gpus all \
+  --ipc host \
+  --net host \
+  --privileged \
+  -v /dev:/dev \
+  -v /dev/bus/usb:/dev/bus/usb \
+  --name panda \
+  -e DISPLAY=$DISPLAY \
+  -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
+  -v ~/Eric/panda_ws:/workspace \
+  ericmjk/panda_ws:vanilla
+```
+
+Available images: `ericmjk/panda_ws:vanilla`, `ericmjk/panda_ws:latest`, `ericmjk/panda_ws:thinkgrasp`
+
 ## Workspace Layout
 
 ```
-/workspace/
+/workspace/   (= ~/Eric/panda_ws on host)
   ros2_ws/          ← ROS 2 colcon workspace
     src/
-      panda_ros2/   ← Franka hardware driver packages
-      pymoveit2/    ← Python MoveIt 2 client library (repo not yet cloned — directory is empty)
-      topic_based_ros2_control/  ← Isaac Sim ↔ ros2_control bridge via topics
+      panda_ros2/   ← Franka hardware driver packages (forked submodule)
+      pymoveit2/    ← Python MoveIt 2 client library (submodule)
+      topic_based_ros2_control/  ← Isaac Sim ↔ ros2_control bridge via topics (submodule)
   thinkgrasp/
-    ThinkGrasp/     ← Vision-language grasp detection system (repo not yet cloned — directory is empty)
+    ThinkGrasp/     ← Vision-language grasp detection system (forked submodule)
 ```
 
-> **Note**: `pymoveit2` and `ThinkGrasp` are empty placeholder directories. Clone them before use:
-> - `https://github.com/AndrejOrsula/pymoveit2.git`
-> - ThinkGrasp from its CoRL 2024 repository; CUDA env vars required (`CUDA_HOME=/usr/local/cuda-11.8`)
+All four `src/` directories are git submodules. Initialize them with:
+```bash
+git submodule update --init --recursive
+```
+
+Submodule URLs:
+- `ros2_ws/src/panda_ros2` → `https://github.com/eric-mjk/_forked_panda_ros2.git`
+- `ros2_ws/src/pymoveit2` → `https://github.com/AndrejOrsula/pymoveit2.git`
+- `ros2_ws/src/topic_based_ros2_control` → `https://github.com/PickNikRobotics/topic_based_ros2_control.git`
+- `thinkgrasp/ThinkGrasp` → `https://github.com/eric-mjk/_forked_ThinkGrasp.git`
 
 ## Build & Test Commands
 
-Run from `/workspace/ros2_ws`:
+All commands run **inside the container** from `/workspace/ros2_ws`.
 
 ```bash
 # Build
@@ -39,6 +68,8 @@ colcon test --packages-select <package_name>
 ```
 
 Before running anything, source the workspace: `source /workspace/ros2_ws/install/setup.bash`
+
+> All paths below use `/workspace` (the in-container path).
 
 ## Launch Commands
 
@@ -125,11 +156,11 @@ The main control node (`franka_control2`) creates a multi-threaded executor with
 
 ### pymoveit2
 
-Python client library (`ros2_ws/src/pymoveit2/`) providing async MoveIt 2 interfaces. Key classes: `MoveIt2` (arm planning/execution), `MoveIt2Gripper`, `MoveIt2Servo`. Used to drive the Panda from Python nodes without writing C++ controllers. **Repository not yet cloned** — directory is empty.
+Python client library (`ros2_ws/src/pymoveit2/`) providing async MoveIt 2 interfaces. Key classes: `MoveIt2` (arm planning/execution), `MoveIt2Gripper`, `MoveIt2Servo`. Used to drive the Panda from Python nodes without writing C++ controllers.
 
 ### ThinkGrasp
 
-Vision-language grasp detection system (`thinkgrasp/ThinkGrasp/`) — CoRL 2024. Uses LangSAM for segmentation and FGC-GraspNet for 6-DOF grasp pose estimation. Runs in PyBullet simulation or real-world via Flask API. **Repository not yet cloned** — directory is empty.
+Vision-language grasp detection system (`thinkgrasp/ThinkGrasp/`) — CoRL 2024. Uses LangSAM for segmentation and FGC-GraspNet for 6-DOF grasp pose estimation. Runs in PyBullet simulation or real-world via Flask API.
 
 When populated:
 - **CUDA environment** required — set `CUDA_HOME=/usr/local/cuda-11.8`, add `$CUDA_HOME/bin` to `PATH` and `$CUDA_HOME/lib64` to `LD_LIBRARY_PATH` before running.

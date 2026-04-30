@@ -1,0 +1,26 @@
+# After Cloning panda_ws
+git submodule update --init --recursive
+
+
+# Franka Panda - ROS2
+
+docker run -it\
+  -d \
+  --gpus all \
+  --ipc host \
+  --net host \
+  --privileged \
+  -v /dev:/dev \
+  -v /dev/bus/usb:/dev/bus/usb \
+  --name eric_panda \
+  -e DISPLAY=$DISPLAY \
+  -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
+  -v ~/Eric/panda_ws:/workspace \
+  ericmjk/panda_ws:vanilla
+    
+# Images
+checkpoint:latest
+ericmjk/panda_ws:setup_end
+ericmjk/panda_ws:latest
+ericmjk/panda_ws:thinkgrasp
+osrf/ros:humble-desktop
