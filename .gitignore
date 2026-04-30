@@ -1,0 +1,10 @@
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# secrets / env
+.env
+*.env
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
