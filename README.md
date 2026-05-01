@@ -1,9 +1,13 @@
 # Panda_ws
 
-1. Clone this repo
-ex) to Eric/panda_ws
+## Setup
 
-2. running the container
+### 1. Clone the repo
+```bash
+git clone https://github.com/eric-mjk/panda_ws.git ~/Eric/panda_ws
+```
+
+### 2. Start the container
 ```
 docker run -it -d --net=host --ipc=host \
   -e ROS_DOMAIN_ID=0 \
@@ -19,39 +23,41 @@ docker run -it -d --net=host --ipc=host \
   ericmjk/panda_thinkgrasp:sim
 ```
 
-3. After cloning panda_ws (inside container)
-```
+### 3. First-time setup (inside container)
+```bash
+cd /workspace
 git submodule update --init --recursive
 
 sudo apt update
 sudo apt install ros-humble-ros-testing
 ```
 
-4. Colcon build inside ros2_ws
-
-5. Run
-
-- fake hardware
+### 4. Build (inside container, from `/workspace/ros2_ws`)
+```bash
+colcon build
+source /workspace/ros2_ws/install/setup.bash
 ```
+
+---
+
+## Running
+
+### Fake hardware (no robot or simulator needed)
+```bash
 ros2 launch franka_moveit_config moveit.launch.py use_fake_hardware:=true load_gripper:=true
 ```
 
-- isaac sim
-```
-ros2 launch franka_moveit_config moveit.launch.py use_isaac_sim:=true load_gripper:=false
-```
+### Isaac Sim
+Download the scene file: [sim.usda](https://drive.google.com/file/d/1yR3XmFyKMNpFvo22lVXZy3M6fGLrfBA_/view?usp=sharing)
 
-```
+Open the `.usda` file in Isaac Sim and press **Play**, then run:
+```bash
 ros2 launch franka_moveit_config moveit.launch.py use_isaac_sim:=true load_gripper:=true
 ```
 
-<- for isaac sim run the sim.usda file first (this file is not on github)
+---
 
+## Docker Images
 
-
-(for reference)
-docker images
-
-`https://hub.docker.com/repository/docker/ericmjk/panda_ws/general`
-
-`https://hub.docker.com/repository/docker/ericmjk/panda_thinkgrasp/general`
+- [`ericmjk/panda_ws`](https://hub.docker.com/repository/docker/ericmjk/panda_ws/general)
+- [`ericmjk/panda_thinkgrasp`](https://hub.docker.com/repository/docker/ericmjk/panda_thinkgrasp/general)
