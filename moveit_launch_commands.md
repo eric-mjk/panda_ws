@@ -9,4 +9,4 @@ ros2 launch franka_moveit_config moveit.launch.py use_isaac_sim:=true load_gripp
 ros2 launch franka_moveit_config moveit.launch.py use_isaac_sim:=true load_gripper:=true rviz:=false
 
 # ros2 launch — real robot
-ros2 launch franka_moveit_config moveit.launch.py robot_ip:=<ROBOT_IP> load_gripper:=true
+ros2 launch franka_moveit_config moveit.launch.py robot_ip:=172.16.0.2 load_gripper:=true
