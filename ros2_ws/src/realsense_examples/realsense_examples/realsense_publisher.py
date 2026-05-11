@@ -13,8 +13,8 @@ class RealSensePublisher(Node):
         super().__init__('realsense_publisher')
 
         self.declare_parameter('serial_no', '')       # empty = first device found
-        self.declare_parameter('color_width', 1920)
-        self.declare_parameter('color_height', 1080)
+        self.declare_parameter('color_width', 1280)
+        self.declare_parameter('color_height', 720)
         self.declare_parameter('color_fps', 30)
         self.declare_parameter('depth_width', 640) # 640
         self.declare_parameter('depth_height', 480) # 480
@@ -22,6 +22,10 @@ class RealSensePublisher(Node):
         self.declare_parameter('enable_color', True)
         self.declare_parameter('enable_depth', True)
         self.declare_parameter('enable_aligned_depth', True)
+        self.declare_parameter('color_auto_exposure', False)
+        self.declare_parameter('color_exposure', 600.0)
+        self.declare_parameter('color_gain', 32.0)
+        self.declare_parameter('depth_min_distance', 0.0)
 
         serial = self.get_parameter('serial_no').value
         color_w = self.get_parameter('color_width').value
@@ -33,6 +37,10 @@ class RealSensePublisher(Node):
         self._enable_color = self.get_parameter('enable_color').value
         self._enable_depth = self.get_parameter('enable_depth').value
         self._enable_aligned = self.get_parameter('enable_aligned_depth').value
+        color_auto_exposure = self.get_parameter('color_auto_exposure').value
+        color_exposure = self.get_parameter('color_exposure').value
+        color_gain = self.get_parameter('color_gain').value
+        depth_min_distance = self.get_parameter('depth_min_distance').value
 
         # Aligned depth requires both streams.
         if self._enable_aligned and not (self._enable_color and self._enable_depth):
@@ -65,6 +73,13 @@ class RealSensePublisher(Node):
         device = profile.get_device()
         self.get_logger().info(f'Connected to: {device.get_info(rs.camera_info.name)} '
                                f'(s/n {device.get_info(rs.camera_info.serial_number)})')
+        self._configure_sensors(
+            device,
+            color_auto_exposure=color_auto_exposure,
+            color_exposure=color_exposure,
+            color_gain=color_gain,
+            depth_min_distance=depth_min_distance,
+        )
 
         if self._enable_color:
             color_profile = profile.get_stream(rs.stream.color).as_video_stream_profile()
@@ -136,6 +151,64 @@ class RealSensePublisher(Node):
         msg.r = [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
         msg.p = [fx, 0.0, cx, 0.0, 0.0, fy, cy, 0.0, 0.0, 0.0, 1.0, 0.0]
         return msg
+
+    def _configure_sensors(
+        self,
+        device,
+        *,
+        color_auto_exposure: bool,
+        color_exposure: float,
+        color_gain: float,
+        depth_min_distance: float,
+    ) -> None:
+        color_sensor = None
+        depth_sensor = None
+
+        for sensor in device.query_sensors():
+            name = sensor.get_info(rs.camera_info.name)
+            if 'RGB' in name:
+                color_sensor = sensor
+            if 'Depth' in name:
+                depth_sensor = sensor
+
+        if color_sensor is not None:
+            self._set_sensor_option(
+                color_sensor,
+                rs.option.enable_auto_exposure,
+                1.0 if color_auto_exposure else 0.0,
+                'RGB auto exposure',
+            )
+            if not color_auto_exposure:
+                self._set_sensor_option(
+                    color_sensor,
+                    rs.option.exposure,
+                    float(color_exposure),
+                    'RGB exposure',
+                )
+            self._set_sensor_option(
+                color_sensor,
+                rs.option.gain,
+                float(color_gain),
+                'RGB gain',
+            )
+
+        if depth_sensor is not None:
+            self._set_sensor_option(
+                depth_sensor,
+                rs.option.min_distance,
+                float(depth_min_distance),
+                'depth min distance',
+            )
+
+    def _set_sensor_option(self, sensor, option, value: float, label: str) -> None:
+        if not sensor.supports(option):
+            self.get_logger().warn(f'{label} is not supported by this sensor')
+            return
+        try:
+            sensor.set_option(option, value)
+            self.get_logger().info(f'Set {label} to {value}')
+        except RuntimeError as exc:
+            self.get_logger().warn(f'Failed to set {label} to {value}: {exc}')
 
     def destroy_node(self):
         self._pipeline.stop()
